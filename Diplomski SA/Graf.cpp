@@ -4,12 +4,7 @@
 template<typename UndirectedGraph>
 Graf<UndirectedGraph>::Graf()
 {
-	std::vector<string> imena{ "Ana", "Boris", "Cvita", "Dalija", "Ema", "Filip", "Gordana", "Helena", "Ivana", "Jakov", "Konstantin", "Luka",
-		"Mia", "Nika", "Petra", "Roko", "Stefan", "Teodora", "Una", "Vanja", "Zlatan" };
-	std::vector<string> vjestine{ "C#", "C++", "C", "HTML", "Python", "PHP", "JavaScript", "AI", "AR", "BigData", "Android", "iOS", "Cyber security", "ML",
-		"Analytics", "Teamwork", "API", "Design", "Soft skills", "Linux", "Servers", "UX/UI", "Tensorflow" };
-	vecImena = imena;
-	vecVjestina = vjestine;
+	
 }
 
 template<typename UndirectedGraph>
@@ -261,6 +256,48 @@ std::vector<int> Graf<UndirectedGraph>::poboljsaniSteinerAlgoritam(UndirectedGra
 	return rjesenje;
 }
 
+template<typename UndirectedGraph>
+std::vector<int> Graf<UndirectedGraph>::pcelinjiAlgoritam(std::vector<int> zadatak, int maxIter, int n, int m, int e, int nep, int nsp, int ngh, double alfa)
+{
+	typedef std::vector<int> rjesenje;
+	int iteracija = 0;
+	std::vector<pair<int, rjesenje > > populcijaRjesenja;
+	for (int i = 0; i < n; ++i)
+	{
+		rjesenje temp = nasumicnoRjesenje(zadatak);
+		populcijaRjesenja.push_back(std::pair<int, rjesenje >(funkcijaDobrote(temp, alfa), temp));
+	}
+	std::sort(populcijaRjesenja.begin(), populcijaRjesenja.end(), mySort);
+
+	while (iteracija < maxIter)
+	{
+		iteracija++;
+		for (int i = 0; i < n; ++i)
+		{
+			if (i < e)
+			{
+				//obradi elitna rjesenja
+				populcijaRjesenja[i] = nadjiRjesenjeUSusjedstvu(nep, ngh, zadatak, populcijaRjesenja[i], alfa);
+			}
+			else if (i < m)
+			{
+				//obradi najbolja, neelitna rjesenja
+				populcijaRjesenja[i] = nadjiRjesenjeUSusjedstvu(nsp, ngh, zadatak, populcijaRjesenja[i], alfa);
+			}
+			else
+			{
+				//obradi ostala rjesenja
+				rjesenje temp = nasumicnoRjesenje(zadatak);
+				populcijaRjesenja[i] = std::pair<int, rjesenje >(funkcijaDobrote(temp, alfa), temp);
+			}
+		}
+		//sortiraj trenutnu populaciju rjesenja
+		std::sort(populcijaRjesenja.begin(), populcijaRjesenja.end(), mySort);
+
+	}
+	return populcijaRjesenja[0].second;
+}
+
 
 template<typename UndirectedGraph>
 std::vector<int> Graf<UndirectedGraph>::nasumicnoRjesenje(std::vector<int> zadatak)
@@ -292,11 +329,20 @@ std::vector<int> Graf<UndirectedGraph>::nasumicniZadatak()
 }
 
 template<typename UndirectedGraph>
-UndirectedGraph Graf<UndirectedGraph>::inicijalizirajGraf(int n)
+UndirectedGraph Graf<UndirectedGraph>::inicijalizirajGraf(int brojOsoba, int brojVjestina)
 {
-	UndirectedGraph graf(n);
+	std::vector<string> imena{ "Ana", "Boris", "Cvita", "Dalija", "Ema", "Filip", "Gordana", "Helena", "Ivana", "Jakov", "Konstantin", "Luka",
+		"Mia", "Nika", "Petra", "Roko", "Stefan", "Teodora", "Una", "Vanja", "Zlatan" };
+	std::vector<string> vjestine{ "C#", "C++", "C", "HTML", "Python", "PHP", "JavaScript", "AI", "AR", "BigData", "Android", "iOS", "Cyber security", "ML",
+		"Analytics", "Teamwork", "API", "Design", "Soft skills", "Linux", "Servers", "UX/UI", "Tensorflow" };
+	int vel = vjestine.size();
+	for (int i = 0; i < brojVjestina; ++i)
+		vecVjestina.push_back(vjestine[i % vel] + to_string(i / vel));
+	vecImena = imena;
+
+	UndirectedGraph graf(brojOsoba);
 	
-	
+	int n = brojOsoba;
 	int broj_bridova = 0;
 
 	typename boost::graph_traits<UndirectedGraph>::out_edge_iterator e, e_end;
@@ -434,5 +480,63 @@ UndirectedGraph Graf<UndirectedGraph>::prosiriGraf(UndirectedGraph graf, vector<
 	}
 	*zadatak = indexiZadatka;
 	return graf;
+}
+
+template<typename UndirectedGraph>
+double Graf<UndirectedGraph>::funkcijaDobrote(std::vector<int> rjesenje, double alfa)
+{
+	set<int> s;
+	unsigned size = rjesenje.size();
+	for (unsigned i = 0; i < size; ++i) s.insert(rjesenje[i]);
+	rjesenje.assign(s.begin(), s.end());
+
+	double tezina = 0;
+	int brojBridova = 0;
+	for (int i = 0; i < rjesenje.size(); ++i)
+	{
+		typename graph_traits < UndirectedGraph >::vertex_descriptor u;
+		u = vertex(rjesenje[i], G);
+		typename boost::graph_traits<UndirectedGraph>::out_edge_iterator e, e_end;
+		typedef typename UndirectedGraph::edge_property_type Weight;
+		typename property_map < UndirectedGraph, edge_weight_t >::type
+			weight = get(edge_weight, G);
+		for (boost::tie(e, e_end) = out_edges(u, G); e != e_end; ++e)
+		{
+			int cvor = target(*e, G);
+			if (std::find(rjesenje.begin(), rjesenje.end(), target(*e, G)) != rjesenje.end())
+			{
+				auto trenutnaTezina = 1.0/get(weight, *e);
+				tezina += trenutnaTezina;
+				++brojBridova;
+			}
+		}
+	}
+	brojBridova /= 2;
+	int brojNepostojecihBridova = rjesenje.size()*(rjesenje.size() - 1) / 2 - brojBridova;
+	return tezina / 2 - brojNepostojecihBridova * alfa * 1.0/maxTezina;
+}
+
+
+static bool mySort(std::pair<int, std::vector<int>> prvi, std::pair<int, std::vector<int>> drugi)
+{
+	return prvi.first>drugi.first;
+}
+
+template<typename UndirectedGraph>
+std::pair<int, std::vector<int> > Graf<UndirectedGraph>::nadjiRjesenjeUSusjedstvu(int brojPcela, int velSusjedstva, std::vector<int> zadatak, std::pair<int, std::vector<int> > parTrenutnoRjesenje, double alfa)
+{
+	typedef std::vector<int> rjesenje;
+	std::vector<pair<int, rjesenje > > populcijaRjesenja;
+	populcijaRjesenja.push_back(parTrenutnoRjesenje);
+	for (int i = 0; i < velSusjedstva; ++i)
+	{
+		rjesenje temp;
+		for(int j=0; j<velSusjedstva; ++j)
+			temp = izracunajNovoRjesenje(parTrenutnoRjesenje.second, zadatak);
+		populcijaRjesenja.push_back(std::pair<int, rjesenje >(funkcijaDobrote(temp, alfa), temp));
+	}
+	std::sort(populcijaRjesenja.begin(), populcijaRjesenja.end(), mySort);
+
+	return populcijaRjesenja[0];
 }
 
