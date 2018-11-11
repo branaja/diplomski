@@ -306,9 +306,9 @@ std::vector<int> Graf<UndirectedGraph>::nasumicniZadatak()
 	std::vector<int> rjesenje;
 	std::mt19937 rng;
 	rng.seed(std::random_device()());
-	std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100);
+	std::uniform_int_distribution<std::mt19937::result_type> dist(1, 100);
 	for (int j = 0; j < vecVjestina.size(); j++) {
-		if (S[vecVjestina[j]].size() != 0 && dist6(rng)>50)
+		if (S[vecVjestina[j]].size() != 0 && dist(rng)>50)
 			rjesenje.push_back(j);
 	}
 	return rjesenje;
@@ -320,10 +320,10 @@ std::vector<int> Graf<UndirectedGraph>::nasumicniZadatakDuljine(int n)
 	std::set<int> zadatakSkup;
 	std::mt19937 rng;
 	rng.seed(std::random_device()());
-	std::uniform_int_distribution<std::mt19937::result_type> dist6(0, vecVjestina.size()-1);
+	std::uniform_int_distribution<std::mt19937::result_type> dist(0, vecVjestina.size()-1);
 	while (zadatakSkup.size() != n)
 	{
-		int indexVjestine = dist6(rng);
+		int indexVjestine = dist(rng);
 		string vjestina = vecVjestina[indexVjestine];
 		if(S[vjestina].size()!=0)
 			zadatakSkup.insert(indexVjestine);
@@ -395,9 +395,9 @@ std::vector<int> Graf<UndirectedGraph>::izracunajNovoRjesenje(std::vector<int> t
 {
 	std::mt19937 rng;
 	rng.seed(std::random_device()());
-	std::uniform_int_distribution<std::mt19937::result_type> dist6(0, zadatak.size()-1);
+	std::uniform_int_distribution<std::mt19937::result_type> distZ(0, zadatak.size()-1);
 
-	int poredak = dist6(rng);
+	int poredak = distZ(rng);
 	int vjestina = zadatak[poredak];
 	string imeVjestine = vecVjestina[vjestina];
 	std::uniform_int_distribution<std::mt19937::result_type> dist(0, this->S[imeVjestine].size() - 1);
@@ -577,15 +577,16 @@ double Graf<UndirectedGraph>::zbrojTezina(std::vector<int> rjesenje)
 template<typename UndirectedGraph>
 void Graf<UndirectedGraph>::napraviGraf()
 {
+	//funkcija koja generira graf iz datoteka "susjedi" i "vjestine" na temelju podataka s foruma StackExchange
 	std::map<int, std::map<int, int>> susjedi;
 	std::map<int, std::vector<std::string>> vjestine1;
 
-	std::ifstream ifs1("save_electronics");
+	std::ifstream ifs1("vjestine");
 	boost::archive::text_iarchive ia1(ifs1);
 	// write class instance to archive
 	ia1 >> vjestine1;
 
-	std::ifstream ifs2("save_electronics_snapshot");
+	std::ifstream ifs2("susjedi");
 	boost::archive::text_iarchive ia2(ifs2);
 	// write class instance to archive
 	ia2 >> susjedi;
